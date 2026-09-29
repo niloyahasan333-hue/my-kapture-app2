@@ -1,4 +1,4 @@
-# .github/workflows/main_build.yml (The Orchestrator)
+# .github/workflows/main_build.yml (The Final, Robust Orchestrator)
 name: 🤖 KaptureApp - Full Attack Framework Build
 on:
   push:
@@ -17,27 +17,29 @@ jobs:
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
     steps:
-      - name: 🚀 Checkout Code
+      - name: 🚀 Checkout Code (Get All Files)
         uses: actions/checkout@v4
 
       # --- Step 1: Setup Environment (The Base Layer) ---
-      - name: ☕ Set up JDK 17 (Runtime Environment)
+      - name: ☕ Set up JDK 17 (Required Runtime)
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # --- Step 2: Prerequisite Check (The Pre-Flight Check) ---
-      - name: 🛠️ Check and Setup Wrapper
+      # --- Step 2: Setup Gradle Wrapper (The Execution Engine) ---
+      # 🛑 🔴 FIX: wrapper তৈরি করা এবং নিশ্চিত করা যে এটি এক্সিকিউটেবল
+      - name: 🛠️ Initialize and Set Up Gradle Wrapper
         run: |
-          echo "--- 🛠️ 1. Initializing Gradle Wrapper ---"
+          # Gradle Wrapper তৈরি করে, যা টাস্ক চালানোর মূল ইঞ্জিন।
           ./gradlew wrapper --gradle-version 8.7 
-          chmod +x gradlew # 🟢 🔴 Execution Fix for Code 127
+          # এটিকে অবশ্যই এক্সিকিউটেবল করতে হবে
+          chmod +x gradlew
 
       # --- Step 3: Keystore Generation (The Initial Weapon Setup) ---
       - name: 🔑 Generate Release Keystore
         run: |
-          echo "--- 🔑 2. Generating Keystore ---"
+          # এই কমান্ডটি সরাসরি Keytool ব্যবহার করে ফাইলটি তৈরি করে
           keytool -genkeypair \
             -v \
             -keystore app/release.keystore \
@@ -51,8 +53,9 @@ jobs:
 
       # --- Step 4: Building the Core Product (The Assembly Line) ---
       - name: 📦 Build Release APK
+        # 🟢 🔴 Execution Fix: সরাসরি ./gradlew কমান্ডটি ব্যবহার করা হচ্ছে 
+        # যা নিশ্চিত করে যে Wrapper ইনস্টল করা আছে এবং কার্যকর।
         run: |
-          echo "--- 📦 3. Building Application Module ---"
           ./gradlew :app:assembleRelease
 
       # --- Step 5: Final Output (The Delivery) ---
@@ -61,4 +64,3 @@ jobs:
         with:
           name: KaptureApp-Release-Build
           path: app/build/outputs/apk/release/app-release.apk
-          
