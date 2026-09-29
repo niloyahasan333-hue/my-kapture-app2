@@ -11,11 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout all project files
+      # 1. Checkout
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Setup JDK 17
+      # 2. JDK 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -23,13 +23,13 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # 3. Setup Gradle
+      # 3. Gradle 8.7
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      # 4. Check project files
+      # 4. Check project
       - name: Check Project Files
         run: |
           echo "Current directory:"
@@ -39,28 +39,18 @@ jobs:
           ls -la
 
           echo "App directory:"
-          ls -la app || true
+          ls -la app
 
-      # 5. Create Gradle Wrapper if missing
-      - name: Initialize Gradle Wrapper
+      # 5. Build Release APK
+      - name: Build Release APK
         run: |
-          if [ ! -f "./gradlew" ]; then
-            echo "gradlew not found. Creating Gradle Wrapper..."
-            gradle wrapper --gradle-version 8.7
-          else
-            echo "gradlew already exists."
-          fi
+          gradle :app:assembleRelease --stacktrace
 
-          chmod +x gradlew
-
-          echo "Gradle Wrapper:"
-          ls -la gradlew
-          ./gradlew --version
-
-      # 6. Generate Release Keystore
+      # 6. Generate Keystore
       - name: Generate Release Keystore
         env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           mkdir -p app
@@ -68,32 +58,73 @@ jobs:
           keytool -genkeypair \
             -v \
             -keystore app/release.keystore \
-            -alias app \
+            -alias "$KEY_ALIAS" \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass "$KEYSTORE_PASSWORD" \
+            -storepass "$KEY_STORE_PASSWORD" \
             -keypass "$KEY_PASSWORD" \
             -dname "CN=Kapture, OU=Development, O=Kapture, L=Rangpur, ST=Rangpur, C=BD"
 
-      # 7. Build Release APK
-      - name: Build Release APK
+      # 7. Find Android Build Tools
+      - name: Find Android Build Tools
+        id: tools
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          ZIPALIGN=$(find "$ANDROID_HOME/build-tools" -name zipalign -type f | sort -V | tail -1)
+
+          echo "APKSIGNER=$APKSIGNER"
+          echo "ZIPALIGN=$ZIPALIGN"
+
+          echo "apksigner=$APKSIGNER" >> "$GITHUB_OUTPUT"
+          echo "zipalign=$ZIPALIGN" >> "$GITHUB_OUTPUT"
+
+      # 8. Zipalign APK
+      - name: Zipalign APK
+        run: |
+          "${{ steps.tools.outputs.zipalign }}" \
+            -f 4 \
+            app/build/outputs/apk/release/app-release.apk \
+            app/build/outputs/apk/release/app-release-aligned.apk
+
+      # 9. Sign APK
+      - name: Sign Release APK
         env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew :app:assembleRelease --stacktrace
+          "${{ steps.tools.outputs.apksigner }}" sign \
+            --ks app/release.keystore \
+            --ks-key-alias "$KEY_ALIAS"kapture\
+            --ks-pass "pass:$KEY_STORE_PASSWORD"niloyahasan@2002\
+            --key-pass "pass:$KEY_PASSWORD"niloyahasan@2002\
+            --out app/build/outputs/apk/release/app-release-signed.apk \
+            app/build/outputs/apk/release/app-release-aligned.apk
 
-      # 8. Check APK
+      # 10. Verify APK
+      - name: Verify Signed APK
+        run: |
+          "${{ steps.tools.outputs.apksigner }}" verify \
+            --verbose \
+            app/build/outputs/apk/release/app-release-signed.apk
+
+      # 11. Show APK
       - name: Check APK Output
         run: |
-          echo "APK files:"
-          find app/build/outputs/apk -type f -print
+          echo "Final APK:"
+          ls -lh app/build/outputs/apk/release/
+          
+          echo "Signed APK:"
+          find app/build/outputs/apk/release \
+            -name "*signed.apk" \
+            -type f \
+            -print
 
-      # 9. Upload APK
+      # 12. Upload
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: KaptureApp-Release
-          path: app/build/outputs/apk/release/app-release.apk
+          path: app/build/outputs/apk/release/app-release-signed.apk
           if-no-files-found: error
