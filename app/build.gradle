@@ -1,25 +1,57 @@
-// app/build.gradle (Module Level)
-// ... অন্যান্য কোড উপরে থাকবে
-
-android {
-    // ... অন্যান্য কনফিগারেশন ...
-
-    defaultConfig {
-        applicationId "com.yourpackagename.APK_Build"
-        // ... অন্যান্য ডিফল্ট কনফিগারেশন ...
-
-        // 🟢 🔴 Reading from build.gradle properties (If defined locally)
-        def token = System.getProperty('telegram.token') ?: "DEFAULT_FALLBACK_TOKEN"
-        def chatId = System.getProperty('telegram.chat_id') ?: "DEFAULT_FALLBACK_CHAT_ID"
-
-        // 👈 Injecting via property
-        buildConfigField "String", "TELEGRAM_TOKEN", "\"${token}\""
-        buildConfigField "String", "TELEGRAM_CHAT_ID", "\"${chatId}\""
-    }
-    // ... বাকি কোড
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
 
-// 🟢 Local Configuration Helper (Optional: Put this in the root build.gradle or gradle.properties)
-// If you put this in gradle.properties (root level):
-// telegram.token=YOUR_ACTUAL_BOT_TOKEN_HERE
-// telegram.chat_id=7232119242
+android {
+    namespace 'dev.dect.kapture'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "dev.dect.kapture"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        // Telegram configuration
+        buildConfigField "String", "TELEGRAM_TOKEN", "\"YOUR_TELEGRAM_TOKEN\"8808192243:AAGf-zrWiMPKSTkcAF7lfyDBFCyHzvZMjnw"
+        buildConfigField "String", "TELEGRAM_CHAT_ID", "\"YOUR_TELEGRAM_CHAT_ID\"7232119242"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile(
+                'proguard-android-optimize.txt'
+            ), 'proguard-rules.pro'
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.core:core-ktx:1.12.0'
+
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+    implementation 'com.google.code.gson:gson:2.10.1'
+
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+}
