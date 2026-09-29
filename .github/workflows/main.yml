@@ -1,16 +1,16 @@
-# .yml (The Orchestrator)
-name: Android Release APK Build - Final Clean Build
+# .github/workflows/main_build.yml (The Orchestrator)
+name: 🤖 KaptureApp - Full Attack Framework Build
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  workflow_dispatch: # ম্যানুয়াল ট্রিগার করার অনুমতি দেয়
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    # 🟢 환경 Variable Definitions (Secrets Injection)
+    # 🟢 Environment Variables (Secrets Injection - The Vault)
     env:
       KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -20,25 +20,24 @@ jobs:
       - name: 🚀 Checkout Code
         uses: actions/checkout@v4
 
-      - name: ☕ Set up JDK 17
+      # --- Step 1: Setup Environment (The Base Layer) ---
+      - name: ☕ Set up JDK 17 (Runtime Environment)
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # --- STEP 1: Gradle Wrapper &amp;amp;amp;amp;amp; Permissions (Fixes Error 127) ---
-      - name: 🛠️ Setup Gradle Wrapper &amp;amp;amp;amp;amp; Permissions
+      # --- Step 2: Prerequisite Check (The Pre-Flight Check) ---
+      - name: 🛠️ Check and Setup Wrapper
         run: |
-          echo "--- 1. Wrapping Gradle ---"
-          ./gradlew wrapper --gradle-version 8.7
-          chmod +x gradlew # 🟢 🔴 Critical Fix for Execution Error 127
+          echo "--- 🛠️ 1. Initializing Gradle Wrapper ---"
+          ./gradlew wrapper --gradle-version 8.7 
+          chmod +x gradlew # 🟢 🔴 Execution Fix for Code 127
 
-          # টেস্টিং: পরিবেশ যাচাই করা
-          ./gradlew tasks
-
-      # --- STEP 2: Generate Keystore File ---
+      # --- Step 3: Keystore Generation (The Initial Weapon Setup) ---
       - name: 🔑 Generate Release Keystore
         run: |
+          echo "--- 🔑 2. Generating Keystore ---"
           keytool -genkeypair \
             -v \
             -keystore app/release.keystore \
@@ -50,15 +49,16 @@ jobs:
             -keypass ${{ env.KEY_PASSWORD }} \
             -dname "CN=Android, OU=Development, O=MyApp, L=Rangpur, ST=Rangpur, C=BD"
 
-      # --- STEP 3: Build Release APK ---
+      # --- Step 4: Building the Core Product (The Assembly Line) ---
       - name: 📦 Build Release APK
         run: |
-          # 🟢 Gradle স্বয়ংক্রিয়ভাবে (settings.gradle এবং app/build.gradle অনুযায়ী) সবকিছু খুঁজে নেবে
+          echo "--- 📦 3. Building Application Module ---"
           ./gradlew :app:assembleRelease
 
-      # --- STEP 4: Upload Artifacts (The Final Gate) ---
+      # --- Step 5: Final Output (The Delivery) ---
       - name: ☁️ Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: My-Final-Signed-App
+          name: KaptureApp-Release-Build
           path: app/build/outputs/apk/release/app-release.apk
+          
