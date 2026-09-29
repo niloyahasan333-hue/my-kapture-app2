@@ -27,8 +27,8 @@ jobs:
           distribution: 'temurin'
 
       # --- STEP 1: Gradle Wrapper &amp;amp;amp;amp;amp; Permissions (Fixes Error 127) ---
-      - name: 🛠️ Setup Gradle Wrapper &amp;amp;amp;amp;amp; Permissions
-        run: |
+            - name: Setup Gradle wrapper manually
+        run: gradle wrapper --gradle-version 8.0
           echo "--- 1. Wrapping Gradle ---"
           ./gradlew wrapper --gradle-version 8.7
           chmod +x gradlew # 🟢 🔴 Critical Fix for Execution Error 127
