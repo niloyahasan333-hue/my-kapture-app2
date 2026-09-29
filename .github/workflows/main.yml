@@ -1,66 +1,99 @@
-# .github/workflows/main_build.yml (The Final, Robust Orchestrator)
-name: 🤖 KaptureApp - Full Attack Framework Build
+name: Android Release APK Build
+
 on:
   push:
     branches:
       - main
-  workflow_dispatch: # ম্যানুয়াল ট্রিগার করার অনুমতি দেয়
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    # 🟢 Environment Variables (Secrets Injection - The Vault)
-    env:
-      KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
-      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-
     steps:
-      - name: 🚀 Checkout Code (Get All Files)
+      # 1. Checkout all project files
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      # --- Step 1: Setup Environment (The Base Layer) ---
-      - name: ☕ Set up JDK 17 (Required Runtime)
+      # 2. Setup JDK 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
 
-      # --- Step 2: Setup Gradle Wrapper (The Execution Engine) ---
-      # 🛑 🔴 FIX: wrapper তৈরি করা এবং নিশ্চিত করা যে এটি এক্সিকিউটেবল
-      - name: 🛠️ Initialize and Set Up Gradle Wrapper
+      # 3. Setup Gradle
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      # 4. Check project files
+      - name: Check Project Files
         run: |
-          # Gradle Wrapper তৈরি করে, যা টাস্ক চালানোর মূল ইঞ্জিন।
-          ./gradlew wrapper --gradle-version 8.7 
-          # এটিকে অবশ্যই এক্সিকিউটেবল করতে হবে
+          echo "Current directory:"
+          pwd
+
+          echo "Project files:"
+          ls -la
+
+          echo "App directory:"
+          ls -la app || true
+
+      # 5. Create Gradle Wrapper if missing
+      - name: Initialize Gradle Wrapper
+        run: |
+          if [ ! -f "./gradlew" ]; then
+            echo "gradlew not found. Creating Gradle Wrapper..."
+            gradle wrapper --gradle-version 8.7
+          else
+            echo "gradlew already exists."
+          fi
+
           chmod +x gradlew
 
-      # --- Step 3: Keystore Generation (The Initial Weapon Setup) ---
-      - name: 🔑 Generate Release Keystore
+          echo "Gradle Wrapper:"
+          ls -la gradlew
+          ./gradlew --version
+
+      # 6. Generate Release Keystore
+      - name: Generate Release Keystore
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          # এই কমান্ডটি সরাসরি Keytool ব্যবহার করে ফাইলটি তৈরি করে
+          mkdir -p app
+
           keytool -genkeypair \
             -v \
             -keystore app/release.keystore \
-            -alias ${{ env.KEY_ALIAS }} \
+            -alias app \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass ${{ env.KEY_STORE_PASSWORD }} \
-            -keypass ${{ env.KEY_PASSWORD }} \
-            -dname "CN=Android, OU=Development, O=MyApp, L=Rangpur, ST=Rangpur, C=BD"
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            -dname "CN=Kapture, OU=Development, O=Kapture, L=Rangpur, ST=Rangpur, C=BD"
 
-      # --- Step 4: Building the Core Product (The Assembly Line) ---
-      - name: 📦 Build Release APK
-        # 🟢 🔴 Execution Fix: সরাসরি ./gradlew কমান্ডটি ব্যবহার করা হচ্ছে 
-        # যা নিশ্চিত করে যে Wrapper ইনস্টল করা আছে এবং কার্যকর।
+      # 7. Build Release APK
+      - name: Build Release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew :app:assembleRelease
+          ./gradlew :app:assembleRelease --stacktrace
 
-      # --- Step 5: Final Output (The Delivery) ---
-      - name: ☁️ Upload APK Artifact
+      # 8. Check APK
+      - name: Check APK Output
+        run: |
+          echo "APK files:"
+          find app/build/outputs/apk -type f -print
+
+      # 9. Upload APK
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: KaptureApp-Release-Build
+          name: KaptureApp-Release
           path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
