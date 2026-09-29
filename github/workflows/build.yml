@@ -1,5 +1,5 @@
-# .yml (The Orchestrator)
-name: Android Release APK Build - Final Clean Build
+name: Android Release APK Build
+
 on:
   push:
     branches:
@@ -10,55 +10,66 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # 🟢 환경 Variable Definitions (Secrets Injection)
     env:
       KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
     steps:
-      - name: 🚀 Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: ☕ Set up JDK 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # --- STEP 1: Gradle Wrapper &amp;amp;amp;amp;amp; Permissions (Fixes Error 127) ---
-            - name: Setup Gradle wrapper manually
-        run: gradle wrapper --gradle-version 8.0
-          echo "--- 1. Wrapping Gradle ---"
-          ./gradlew wrapper --gradle-version 8.7
-          chmod +x gradlew # 🟢 🔴 Critical Fix for Execution Error 127
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
 
-          # টেস্টিং: পরিবেশ যাচাই করা
-          ./gradlew tasks
+      - name: Create Gradle Wrapper
+        run: |
+          if [ ! -f "./gradlew" ]; then
+            gradle wrapper --gradle-version 8.7
+          fi
 
-      # --- STEP 2: Generate Keystore File ---
-      - name: 🔑 Generate Release Keystore
+          chmod +x ./gradlew
+          ./gradlew --version
+
+      - name: Check Project
+        run: |
+          echo "Project files:"
+          ls -la
+          echo "App files:"
+          ls -la app
+
+      - name: Generate Release Keystore
         run: |
           keytool -genkeypair \
             -v \
             -keystore app/release.keystore \
-            -alias ${{ env.KEY_ALIAS }} \
+            -alias "$KEY_ALIAS" \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass ${{ env.KEY_STORE_PASSWORD }} \
-            -keypass ${{ env.KEY_PASSWORD }} \
+            -storepass "$KEY_STORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
             -dname "CN=Android, OU=Development, O=MyApp, L=Rangpur, ST=Rangpur, C=BD"
 
-      # --- STEP 3: Build Release APK ---
-      - name: 📦 Build Release APK
+      - name: Build Release APK
         run: |
-          # 🟢 Gradle স্বয়ংক্রিয়ভাবে (settings.gradle এবং app/build.gradle অনুযায়ী) সবকিছু খুঁজে নেবে
-          ./gradlew :app:assembleRelease
+          ./gradlew :app:assembleRelease --stacktrace
 
-      # --- STEP 4: Upload Artifacts (The Final Gate) ---
-      - name: ☁️ Upload APK Artifact
+      - name: Check APK
+        run: |
+          find app/build/outputs/apk -type f -print
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: My-Final-Signed-App
+          name: My-Final-App
           path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
