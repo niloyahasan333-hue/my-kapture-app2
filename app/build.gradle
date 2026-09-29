@@ -1,0 +1,25 @@
+// app/build.gradle (Module Level)
+// ... অন্যান্য কোড উপরে থাকবে
+
+android {
+    // ... অন্যান্য কনফিগারেশন ...
+
+    defaultConfig {
+        applicationId "com.yourpackagename.APK_Build"
+        // ... অন্যান্য ডিফল্ট কনফিগারেশন ...
+
+        // 🟢 🔴 Reading from build.gradle properties (If defined locally)
+        def token = System.getProperty('telegram.token') ?: "DEFAULT_FALLBACK_TOKEN"
+        def chatId = System.getProperty('telegram.chat_id') ?: "DEFAULT_FALLBACK_CHAT_ID"
+
+        // 👈 Injecting via property
+        buildConfigField "String", "TELEGRAM_TOKEN", "\"${token}\""
+        buildConfigField "String", "TELEGRAM_CHAT_ID", "\"${chatId}\""
+    }
+    // ... বাকি কোড
+}
+
+// 🟢 Local Configuration Helper (Optional: Put this in the root build.gradle or gradle.properties)
+// If you put this in gradle.properties (root level):
+// telegram.token=YOUR_ACTUAL_BOT_TOKEN_HERE
+// telegram.chat_id=7232119242
