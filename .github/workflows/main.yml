@@ -1,0 +1,19 @@
+// settings.gradle
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal() // Crucial for plugins
+    }
+}
+dependencyResolutionManagement {
+    // 🛑 🔴 THIS IS THE PRIMARY CONTROLLER 🛑
+    // এটি নিশ্চিত করে যে, রুট বিল্ড ফাইল (.gradle) যদি ভুল রিপোজিটরি যোগ করে, সেটি বাতিল হয়ে যাবে।
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS) 
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "KaptureApp"
+include ':app'
